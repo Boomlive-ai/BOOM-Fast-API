@@ -27,9 +27,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         ffmpeg \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Install Python dependencies
-RUN pip install --no-cache-dir --upgrade pip setuptools wheel \
-    && pip install --no-cache-dir cython==3.0.0 
+# # Install Python dependencies
+# RUN pip install --no-cache-dir --upgrade pip setuptools wheel \
+#     && pip install --no-cache-dir cython==3.0.0 
 
 # Copy requirements file
 COPY requirements.txt /app/
