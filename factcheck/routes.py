@@ -1,12 +1,13 @@
-from flask import Blueprint, request, jsonify
+from fastapi import APIRouter, HTTPException, Query
+from typing import Dict, Any
 from factcheck.tools import FactCheck, ProvideQuestionsForArticle, ProvideAnswerForArticle
 
-factcheck_bp = Blueprint('factcheck', __name__)
+factcheck_router = APIRouter()
 
-# Define a root endpoint that provides documentation
-@factcheck_bp.route('/', methods=['GET'])
-def documentation(): 
-    doc = {
+@factcheck_router.get("/")
+async def documentation():
+    """API documentation"""
+    return {
         "API Documentation": {
             "factcheck": {
                 "description": "Perform fact-checking on a given query",
@@ -54,50 +55,31 @@ def documentation():
             }
         }
     }
-    return jsonify(doc)
 
-# Define an endpoint to use the function
-@factcheck_bp.route('/factcheck', methods=['GET'])
-def factcheck():
-    query = request.args.get('query')
+@factcheck_router.get("/factcheck")
+async def factcheck(query: str = Query(..., description="The query to be fact-checked")) -> Dict[str, Any]:
     if not query:
-        return jsonify({'error': 'Query parameter is required'}), 400
-    
+        raise HTTPException(status_code=400, detail="Query parameter is required")
     result = FactCheck(query)
-    return jsonify({'result': result})
+    return {"result": result}
 
-# Fetch questions
-@factcheck_bp.route('/fetch_questions', methods=['GET'])
-def fetch_questions():
-    url = request.args.get('url')
+@factcheck_router.get("/fetch_questions")
+async def fetch_questions(url: str = Query(..., description="The URL of the article for which questions are to be fetched")) -> Dict[str, Any]:
     if not url:
-        return jsonify({'error': 'No URL provided'}), 400
-    
+        raise HTTPException(status_code=400, detail="No URL provided")
     result, document = ProvideQuestionsForArticle(url)
     if not result:
-        return jsonify({'error': 'Failed to generate questions'}), 500
+        raise HTTPException(status_code=500, detail="Failed to generate questions")
+    return {"result": result, "document": {"page_content": document.page_content, "metadata": document.metadata}}
 
-    # Serialize the Document object
-    serialized_document = {
-        "page_content": document.page_content,
-        "metadata": document.metadata
-    }
-
-    return jsonify({'result': result, 'document': serialized_document})
-
-# Answer questions
-@factcheck_bp.route('/answer_questions', methods=['GET'])
-def answer_questions():
-    # Extract URL and input query from the request parameters
-    url = request.args.get('url')
-    input_query = request.args.get('query')
-
-    if not url or not input_query:
-        return jsonify({'error': 'Both URL and query parameters are required'}), 400
-
-    # Call the function to generate answers
-    result = ProvideAnswerForArticle(url, input_query)
+@factcheck_router.get("/answer_questions")
+async def answer_questions(
+    url: str = Query(..., description="The URL of the article"),
+    query: str = Query(..., description="The specific question to be answered")
+) -> Dict[str, Any]:
+    if not url or not query:
+        raise HTTPException(status_code=400, detail="Both URL and query parameters are required")
+    result = ProvideAnswerForArticle(url, query)
     if not result:
-        return jsonify({'error': 'Failed to generate an answer'}), 500
-
-    return jsonify({'result': result})
+        raise HTTPException(status_code=500, detail="Failed to generate an answer")
+    return {"result": result}
