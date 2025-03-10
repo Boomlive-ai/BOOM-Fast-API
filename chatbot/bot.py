@@ -47,7 +47,17 @@ class Chatbot:
             index_name=os.getenv("PINECONE_OLD_INDEX_NAME"),
             embedding=OpenAIEmbeddings(model="text-embedding-3-small")
         )
+        self.hindi_index = PineconeVectorStore(
+            index_name=os.getenv("PINECONE_HINDI_INDEX_NAME"),
+            embedding=OpenAIEmbeddings(model="text-embedding-3-small")
+        )
+        # self.bangla_index = PineconeVectorStore(
+        #     index_name=os.getenv("PINECONE_BANGLA_INDEX_NAME"),
+        #     embedding=OpenAIEmbeddings(model="text-embedding-3-small")
+        # )
         current_date = datetime.now().strftime("%B %d, %Y")
+        # Set default language code
+        self.language_code = "en"  
         self.system_message = SystemMessage(
             content=(
                     "You are BoomLive AI, an expert chatbot designed to answer questions related to BOOM's fact-checks, articles, reports, and data analysis. "
@@ -105,17 +115,31 @@ class Chatbot:
         # External API for latest articles
         # self.latest_articles_api = fetch_latest_article_urls()
 
+    def detect_and_set_language(self, original_query):
+        """Detect language and update self.language_code."""
+        try:
+            detected_lang = detect(original_query)  # Detects language
+        except:
+            detected_lang = "en"  # Default to English if detection fails
 
+        if detected_lang == "hi":
+            self.language_code = "hi"  # Hindi
+        elif detected_lang == "bn":
+            self.language_code = "bn"  # Bangla
+        else:
+            self.language_code = "en"  # Default to English
     def enhance_query(self, original_query: str) -> dict:
         """
         Enhanced query processing optimized for mediator tool selection.
         Analyzes query patterns to maximize correct tool selection.
         """
+        
+        self.detect_and_set_language(original_query)
 
             # Step 1: Detect if the query is in English
         detected_lang = detect(original_query)
         
-        if detected_lang != "en":
+        if detected_lang != "en" and detected_lang != "hi" and detected_lang != "bn" :
             # Translate the query to English
             translator = GoogleTranslator(source="auto", target="en")
             original_query = translator.translate(original_query)
@@ -1045,6 +1069,12 @@ class Chatbot:
         """
         Enhanced retrieve_data with better context utilization
         """
+
+
+        if self.language_code =='hi':
+            index_to_use='hindi-boom-articles'
+        elif self.language_code=='bn':
+            index_to_use=='bangla-boom-articles'
         print(f"Retrieve data called with query: {query} and index: {index_to_use} with article_type: {article_type}")
         
         current_date = get_current_date()
@@ -1090,6 +1120,25 @@ class Chatbot:
             all_docs.extend(old_docs)
             old_sources = [doc.metadata.get("source", "Unknown") for doc in old_docs]
             all_sources.extend(old_sources)
+
+        if index_to_use=="hindi-boom-articles":
+            print("USING HINDI PINECONE INDEX")
+            hindi_retriever=self.hindi_index.as_retriever(search_kwargs={"k": 5})
+            hindi_docs = hindi_retriever.get_relevant_documents(enhanced_query)
+            print(f"HINDI article documents retrieved: {len(hindi_docs)}")  # Debugging line
+            all_docs.extend(hindi_docs)
+            hindi_sources = [doc.metadata.get("source", "Unknown") for doc in hindi_docs]
+            all_sources.extend(hindi_sources)
+
+
+        # if index_to_use=="bangla-boom-articles":
+        #     print("USING BANGLA PINECONE INDEX")
+        #     bangla_retriever=self.bangla_index.as_retriever(search_kwargs={"k": 5})
+        #     bangla_docs = bangla_retriever.get_relevant_documents(enhanced_query)
+        #     print(f"bangla article documents retrieved: {len(bangla_docs)}")  # Debugging line
+        #     all_docs.extend(bangla_docs)
+        #     bangla_sources = [doc.metadata.get("source", "Unknown") for doc in bangla_docs]
+        #     all_sources.extend(bangla_sources)
 
         if all_docs:
             print("the code is going in all_docs")

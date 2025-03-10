@@ -137,9 +137,9 @@ from langchain_core.messages import HumanMessage, AIMessageChunk, AIMessage
 from chatbot.bot import Chatbot
 from chatbot.utils import extract_sources_and_result, prioritize_sources
 from chatbot.tools import fetch_questions_on_latest_articles_in_Boomlive, fetch_articles_based_on_articletype
-from chatbot.vectorstore import StoreCustomRangeArticles, StoreDailyArticles
+from chatbot.vectorstore import StoreCustomRangeArticles, StoreDailyArticles, StoreMultilingualCustomRangeArticles, StoreMultilingualDailyArticles
 from fastapi.responses import StreamingResponse
-
+from datetime import datetime
 # Initialize router
 chatbot_router = APIRouter()
 
@@ -166,7 +166,42 @@ async def api_overview():
     }
 
 
+@chatbot_router.get("/store-daily-articles/{lang}")
+async def store_daily_articles(lang: str):
+    """
+    Endpoint to store daily multilingual articles based on the provided language.
+    Supports English (en), Hindi (hi), and Bengali (bn).
+    """
+    article_storer = StoreMultilingualDailyArticles()
+    result = await article_storer.invoke(lang=lang)
+    return result
 
+@chatbot_router.get("/store-range-articles/{lang}")
+async def store_range_articles(
+    lang: str,
+    from_date: Optional[str] = Query(None, description="Start date in 'YYYY-MM-DD' format"),
+    to_date: Optional[str] = Query(None, description="End date in 'YYYY-MM-DD' format")
+):
+    """
+    Endpoint to store multilingual articles within a custom date range.
+    Supports English (en), Hindi (hi), and Bengali (bn).
+    """
+    # Validate date format
+    if from_date:
+        try:
+            datetime.strptime(from_date, "%Y-%m-%d")
+        except ValueError:
+            return {"status": "error", "message": "Invalid from_date format. Use YYYY-MM-DD."}
+    
+    if to_date:
+        try:
+            datetime.strptime(to_date, "%Y-%m-%d")
+        except ValueError:
+            return {"status": "error", "message": "Invalid to_date format. Use YYYY-MM-DD."}
+    
+    article_storer = StoreMultilingualCustomRangeArticles()
+    result = await article_storer.invoke(from_date=from_date, to_date=to_date, lang=lang)
+    return result
  
     
 @chatbot_router.get("/stream_query")

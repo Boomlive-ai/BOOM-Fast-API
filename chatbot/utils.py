@@ -12,7 +12,15 @@ from urllib.parse import urlparse
 import json
 import time
 from random import randint
+from urllib.parse import urlparse
 
+def is_url(input_string):
+    try:
+        result = urlparse(input_string)
+        return all([result.scheme, result.netloc])
+    except ValueError:
+        return False
+    
 def extract_description_as_keywords(url):
     """
     Extracts meta description from any URL and returns it as keywords.
@@ -925,7 +933,7 @@ async def store_daily_articles():
 #         return []
 
 
-async def store_articles_custom_range(from_date: str = None, to_date: str = None):
+async def store_articles_custom_range(from_date: str = None, to_date: str = None, lang: str = None):
     """
     Fetch and store articles based on a custom date range.
 
@@ -936,6 +944,7 @@ async def store_articles_custom_range(from_date: str = None, to_date: str = None
     Returns:
         list: List of all article URLs processed.
     """
+    
     # Initialize variables
     article_urls = []
     start_index = 0
@@ -1000,7 +1009,7 @@ async def store_articles_custom_range(from_date: str = None, to_date: str = None
     return article_urls
 
 
-
+#########################################This fucntion is used in many places#############################################################################
 def validate_date_range(from_date: str, to_date: str) -> bool:
     """
     Validate the custom date range.
@@ -1018,10 +1027,10 @@ def validate_date_range(from_date: str, to_date: str) -> bool:
         return from_dt <= to_dt
     except ValueError:
         return False
-
+#################################################################################################################
 
 async def filter_urls_custom_range(urls):
-    api_url = f"https://exceltohtml.indiaspend.com/chatbotDB/not_in_table.php?urls={urls}"
+    api_url = f"https://toolbox.boomlive.in/api_project/not_in_table.php?urls={urls}"
     headers = {
         "accept": "*/*",
         "Authorization": "adityaboom_requesting2024#",
@@ -1088,7 +1097,7 @@ async def add_urls_to_database(urls):
     Returns:
         str: A message indicating the result of the request.
     """
-    api_url = f"https://exceltohtml.indiaspend.com/chatbotDB/add_in_table.php?urls={urls}"
+    api_url = f"https://toolbox.boomlive.in/api_project/add_in_table.php?urls={urls}"
     headers = {
         "accept": "*/*",
         "Authorization": "adityaboom_requesting2024#",
@@ -1114,11 +1123,3 @@ async def add_urls_to_database(urls):
     except requests.RequestException as e:
         return f"An error occurred while adding URLs: {e}"
     
-from urllib.parse import urlparse
-
-def is_url(input_string):
-    try:
-        result = urlparse(input_string)
-        return all([result.scheme, result.netloc])
-    except ValueError:
-        return False
