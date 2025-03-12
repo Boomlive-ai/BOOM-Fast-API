@@ -135,7 +135,7 @@ from typing import Optional, Dict, Any
 from pydantic import BaseModel
 from langchain_core.messages import HumanMessage, AIMessageChunk, AIMessage
 from chatbot.bot import Chatbot
-from chatbot.utils import extract_sources_and_result, prioritize_sources
+from chatbot.utils import extract_sources_and_result, prioritize_sources, clean_response
 from chatbot.tools import fetch_questions_on_latest_articles_in_Boomlive, fetch_articles_based_on_articletype
 from chatbot.vectorstore import StoreCustomRangeArticles, StoreDailyArticles, StoreMultilingualCustomRangeArticles, StoreMultilingualDailyArticles
 from fastapi.responses import StreamingResponse
@@ -294,6 +294,11 @@ async def stream_query_bot(question: str, thread_id: str):
                             print("##############################response_collected################################")
                             if response_collected=="1from" or response_collected=="from":
                                 use_cnt_4_res = False
+                                response_collected=""
+                                print("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
+                                response_collected
+                                print("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
+
                                 content=""
                             if response_collected=="Not" or response_collected=="1Not":
                                 found_not_found = True
@@ -336,6 +341,9 @@ async def stream_query_bot(question: str, thread_id: str):
                         if match:
                             content = match.group(1)
                             response_collected += content  # Collect the full response
+                                        # Apply the date range removal
+                            contentc = clean_response(response_collected)
+
                             print("#############################response_collected in count 5################################")
                             print(content)
                             print("##############################response_collected################################")
@@ -433,8 +441,8 @@ async def query_bot(
     input_data = {"messages": [HumanMessage(content=question)]}
     
     try:
-        async for event in workflow.astream_events(input_data, config={"configurable": {"thread_id": thread_id}}, version="v2"):
-                print(event["event"])
+        # async for event in workflow.astream_events(input_data, config={"configurable": {"thread_id": thread_id}}, version="v2"):
+        #         print(event["event"])
         response = workflow.invoke(input_data, config={"configurable": {"thread_id": thread_id}})
         result = response['messages'][-1].content
         result, raw_sources = extract_sources_and_result(result)

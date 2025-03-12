@@ -51,10 +51,10 @@ class Chatbot:
             index_name=os.getenv("PINECONE_HINDI_INDEX_NAME"),
             embedding=OpenAIEmbeddings(model="text-embedding-3-small")
         )
-        # self.bangla_index = PineconeVectorStore(
-        #     index_name=os.getenv("PINECONE_BANGLA_INDEX_NAME"),
-        #     embedding=OpenAIEmbeddings(model="text-embedding-3-small")
-        # )
+        self.bangla_index = PineconeVectorStore(
+            index_name=os.getenv("PINECONE_BANGLA_INDEX_NAME"),
+            embedding=OpenAIEmbeddings(model="text-embedding-3-small")
+        )
         current_date = datetime.now().strftime("%B %d, %Y")
         # Set default language code
         self.language_code = "en"  
@@ -289,6 +289,7 @@ class Chatbot:
 
 
     def call_model(self, state: MessagesState):
+        print("call_model invoked")  # Simple log to track invocations
         messages = state['messages']
         last_message = messages[-1]
         original_query = last_message.content
@@ -351,6 +352,8 @@ class Chatbot:
                 if indicator.lower() in response_lower:
                     return {"messages": [AIMessage(content="Not Found")]}
             return {"messages": [AIMessage(content=tag_response.content)]}
+        
+
         if custom_date_range:
             print("YES IT IS USING CUSTOM DATE RANGE FEATURE")
             article_type = mediation_result["article_type"]
@@ -468,14 +471,24 @@ class Chatbot:
             rag_result = self.retrieve_data(enhanced_query, index_to_use, article_type)
             result_text = rag_result['result']
             sources = rag_result['sources']
+            print("((((((((((((((((((((((((((((((((((((((((((((((((((sources))))))))))))))))))))))))))))))))))))))))))))))))))")
+            print(sources)
+            print("((((((((((((((((((((((((((((((((((((((((((((((((((sources))))))))))))))))))))))))))))))))))))))))))))))))))")
+
+
+            print("((((((((((((((((((((((((((((((((((((((((((((((((((result_text))))))))))))))))))))))))))))))))))))))))))))))))))")
+            print(result_text)
+            print("((((((((((((((((((((((((((((((((((((((((((((((((((result_text))))))))))))))))))))))))))))))))))))))))))))))))))")
 
             if not sources:
+                print("SOURCES ARE NOT FOUND")
                 return {"messages": [AIMessage(content="Not Found")]}
             
             source_texts = []
             first_three_urls = []
             first_three_urls = sources[:3]
             for url in sources:
+                print("PROCESSING THE URL FOR EXTRACTING CONTENT", url)
                 content = fetch_page_text(url)  # You should have a function to fetch content
                 # Limit the snippet to, say, 500 characters (adjust as needed)
                 snippet = content[:1000] if content else "No content available."
@@ -581,7 +594,7 @@ class Chatbot:
 
                 # Check if any indicators are present
             for indicator in self.no_info_indicators:
-                if indicator.lower() in response_lower or not sources:
+                if indicator.lower() in response_lower and self.language_code=='en':
                     return {"messages": [AIMessage(content="Not Found")]}
             # verification_prompt = f"""
             # Analyze the following text and determine whether it explicitly states that there is no verified information available.
@@ -626,7 +639,7 @@ class Chatbot:
         print("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
         print(enhanced_query,verification_text.lower())
         print("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
-        if "not found" in verification_text.lower(): #
+        if "not found" in verification_text.lower() and self.language_code=='en': #
                 return {"messages": [AIMessage(content="Not Found")]}
         return {"messages": [AIMessage(content=response.content)]}
 
@@ -644,182 +657,347 @@ class Chatbot:
 
 
 
+#     def mediator(self, query: str) -> dict:
+#         """
+#         Enhanced mediator that handles fact-check queries and invalid/random queries.
+#         """
+#         article_type = "all"  # Default to 'all' if no specific article type is provided
+#         enhanced_data = self.enhance_query(query)
+#         print(enhanced_data)
+#         enhanced_query = enhanced_data["enhanced_query"]
+#         # Check if the query is too short or contains random gibberish
+#         # if len(query.strip()) < 3 or not re.match(r'[A-Za-z0-9\s,.\'-]+$', query):
+#         #     return {
+#         #         "fetch_latest_articles": False,
+#         #         "use_rag": False,
+#         #         "custom_date_range": False,
+#         #         "index_to_use": None,
+#         #         "response": "Please provide a more specific query.",
+#         #         "article_type":article_type
+#         #     }
+#         # print(f"Mediator called with query: {query}")
+#         # Check for custom date range
+
+# # Check for tag-based queries with trending tags context
+#         tag_analysis_prompt = f"""
+#         You are an AI assistant for BOOM. BOOM maintains trending tags at https://www.boomlive.in/trending-tags.
+#         Each tag can be accessed via the URL pattern: https://www.boomlive.in/search?search={{tagName}}.
+
+#         **Your Task:**
+#         Determine if the user query explicitly asks for fact-checks, explainers, or articles related to a specific tag.
+
+#         **Query:** "{enhanced_query}"
+
+#         **Conditions for it to be a tag-based query (IS_TAG_QUERY = yes):**
+#         - Query shouldn't be asking for fact check on specific claim
+#         - Query should be asking for fact check on any person, place.
+#         - Examples of valid queries:
+#             - "Provide fact-checks on Narendra Modi."
+#             - "Fact Checks on Rahul Gandhi"
+#             - "Provide Fact Checks on Nirmala Sitaraman"
+#         **Output Format:**
+#         IS_TAG_QUERY: <yes/no>
+#         TAG: <extracted tag> (Only if IS_TAG_QUERY = yes)
+#         CONTENT_TYPE: <fact-check/all>
+#         USE_TAG_URL: <yes/no> (Only if IS_TAG_QUERY = yes)
+#         """
+
+#         tag_analysis = self.llm.invoke([HumanMessage(content=tag_analysis_prompt)])
+
+#         # Parse the LLM response
+#         tag_results = {}
+#         for line in tag_analysis.content.strip().split('\n'):
+#             if ':' in line:
+#                 key, value = line.split(':', 1)
+#                 tag_results[key.strip()] = value.strip().lower()
+
+#         # Process only if it's a tag query
+#         if (tag_results.get('IS_TAG_QUERY') == 'yes' and 
+#             tag_results.get('TAG') and 
+#             tag_results.get('USE_TAG_URL') == 'yes' and
+#              self.language_code=='en'):
+            
+#             tag = tag_results['TAG'].replace(' ', '%20')  # URL encode spaces
+            
+#             return {
+#                 "fetch_latest_articles": False,  # Fetch from the tag URL directly
+#                 "use_rag": False,  # Don't use RAG since we have direct URL
+#                 "use_tag": True,  # Use the tag URL for fetching articles
+#                 "custom_date_range": False,
+#                 "index_to_use": "both",  # Not using indices
+#                 "article_type": tag_results.get('CONTENT_TYPE', 'all'),
+#                 "enhanced_query": enhanced_query,
+#                 "tag_url": f"https://www.boomlive.in/search?search={tag}"  # Direct tag URL reference
+#             }
+
+        
+#         date_pattern = re.compile(
+#             r'(\bfrom\s+\d{4}-\d{2}-\d{2}\b.*?to\s+\d{4}-\d{2}-\d{2}\b)|'
+#             r'(\b(last|this)\s+(week|month|year)\b)', 
+#             re.IGNORECASE
+#         )
+#         custom_date_match = date_pattern.search(enhanced_query)
+
+#         # Check if query is related to fact-checking
+#         fact_check_keywords = [
+#             'misrepresents', 'insult', 'use influencers', 'staged', 'real', 'verify', 'true or false', 'edited', 'was', 'has', 'did', 'who', 'what', 'is', 'deceptive',
+#             'false claim', 'incorrect', 'misleading', 'manipulated', 'spliced', 'fake', 'inaccurate', 'disinformation'
+#         ]
+        
+#         # Otherwise, decide based on the query content
+#         decision_prompt = (
+#             f"Analyze the following query and answer:\n"
+#             f"1. Is the query doesn't have claim and asking for the latest articles,latest news,latest fact checks,latest explainers,latest updates, or latest general information without specifying a specific topic, claim and having the word latest? Respond with 'yes' or 'no'.Note if the query is about any specific recent topic or **claim** then respond with 'no'\n"
+#             f"2. Should this query use the RAG tool and  if user is asking any question, claim or incident Eg: Modi? Respond with 'yes' or if question is genral greetings or anything random Respond with 'no'.\n"
+#             f"3. If RAG is required, indicate whether the latest or old data index should be used. Respond with 'latest', 'old', or 'both'.\n\n"
+#             f"4. Does the query contain a custom date range or timeframe (e.g., 'from 2024-01-01 to 2024-12-31', 'this month', 'last week', etc.) or something like this Eg: factcheck from dec 2024 or explainers from 2024, if it is anything related to date, month or year? Respond with 'yes' or 'no'.\n\n"
+#             f"5. Does the query inlcudes any one keyword from this list: fact-check, law, explainers, decode, mediabuddhi, web-stories, boom-research, deepfake-tracker. Provide one keyword from the list if present or related to any word in keyword, if it is not related to any return all. If query has boom-report then it is boom-research"
+#             f"Query: {enhanced_query}"
+#         )
+        
+#         decision = self.llm.invoke([HumanMessage(content=decision_prompt)])
+#         response_lines = decision.content.strip().split("\n")
+#         print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@response_lines@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
+#         print(response_lines, type(response_lines))
+#         print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@response_lines@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
+#         # Parse decisions
+#         fetch_latest_articles = "yes" in response_lines[0].lower()
+#         use_rag = "yes" in response_lines[1].lower()
+#         index_to_use = response_lines[2].strip()
+#         custom_date_range = "yes" in response_lines[3].lower()
+
+#         print(fetch_latest_articles, use_rag, index_to_use, custom_date_range)
+#             # Safely access the article_type
+#         if len(response_lines) > 4:
+#             article_type = re.sub(r'^\d+[\.\s]*', '', response_lines[4].strip()).lower()
+#         print("#########################################################################")
+#         print(decision_prompt)
+#         print("#########################################################################")
+#         print("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
+#         print(article_type)
+#         print("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
+
+
+#         ########################################################
+      
+#         metadata = enhanced_data["query_metadata"]
+#          # Map primary tool to mediator response
+#         if metadata["primary_tool"] == "CUSTOM_DATE_RETRIEVER":
+#             return {
+#                 "fetch_latest_articles": False,
+#                 "use_rag": False,
+#                 "use_tag": False,
+#                 "custom_date_range": True,
+#                 "index_to_use": None,
+#                 "response": "Using custom date retriever for temporal query",
+#                 "article_type": article_type,
+#                 "enhanced_query": enhanced_query 
+#             }
+#         ###############################################
+
+
+#         if custom_date_match:
+#             return {
+#                 "fetch_latest_articles": False,
+#                 "use_rag": False,
+#                 "use_tag": False,
+#                 "custom_date_range": True,
+#                 "index_to_use": None,
+#                 "response": "Query detected as custom date range, fetching articles for the specified range.",
+#                 "article_type": article_type,
+#                 "enhanced_query": enhanced_query 
+#             }
+        
+#                 # If the query contains any of these keywords, mark it as a fact-check query
+#         is_fact_check = any(keyword in enhanced_query.lower() for keyword in fact_check_keywords)
+#         print("is_fact_check", is_fact_check)
+#         # Force the use of RAG for fact-check queries
+#         if is_fact_check:
+#             return {
+#                 "fetch_latest_articles": False,  # Skip fetching articles if fact-checking
+#                 "use_rag": use_rag,  # Always use RAG for fact-checking queries
+#                 "use_tag": False,
+#                 "custom_date_range": False,
+#                 "index_to_use": "both",  # Check both indexes for relevant data (latest and old)
+#                 "response": "Query detected as fact-check, using RAG tool.",
+#                 "article_type": article_type,
+#                 "enhanced_query": enhanced_query
+
+#             }
+#         return {
+#             "fetch_latest_articles": fetch_latest_articles,
+#             "use_rag": use_rag,
+#             "use_tag": False,
+#             "custom_date_range": custom_date_range,
+#             "index_to_use": index_to_use,
+#             "article_type": article_type,
+#             "enhanced_query": enhanced_query 
+#         }
+
+
     def mediator(self, query: str) -> dict:
         """
         Enhanced mediator that handles fact-check queries and invalid/random queries.
         """
-        article_type = "all"  # Default to 'all' if no specific article type is provided
+        # Initialize default return values
+        result = {
+            "fetch_latest_articles": False,
+            "use_rag": False,
+            "use_tag": False,
+            "custom_date_range": False,
+            "index_to_use": None,
+            "article_type": "all",
+            "enhanced_query": None,
+            "response": None,
+            "tag_url": None
+        }
+        
         enhanced_data = self.enhance_query(query)
         print(enhanced_data)
         enhanced_query = enhanced_data["enhanced_query"]
-        # Check if the query is too short or contains random gibberish
-        # if len(query.strip()) < 3 or not re.match(r'[A-Za-z0-9\s,.\'-]+$', query):
-        #     return {
-        #         "fetch_latest_articles": False,
-        #         "use_rag": False,
-        #         "custom_date_range": False,
-        #         "index_to_use": None,
-        #         "response": "Please provide a more specific query.",
-        #         "article_type":article_type
-        #     }
-        # print(f"Mediator called with query: {query}")
-        # Check for custom date range
-
-# Check for tag-based queries with trending tags context
-        tag_analysis_prompt = f"""
-        You are an AI assistant for BOOM. BOOM maintains trending tags at https://www.boomlive.in/trending-tags.
-        Each tag can be accessed via the URL pattern: https://www.boomlive.in/search?search={{tagName}}.
-
-        **Your Task:**
-        Determine if the user query explicitly asks for fact-checks, explainers, or articles related to a specific tag.
-
-        **Query:** "{enhanced_query}"
-
-        **Conditions for it to be a tag-based query (IS_TAG_QUERY = yes):**
-        - Query shouldn't be asking for fact check on specific claim
-        - Query should be asking for fact check on any person, place.
-        - Examples of valid queries:
-            - "Provide fact-checks on Narendra Modi."
-            - "Fact Checks on Rahul Gandhi"
-            - "Provide Fact Checks on Nirmala Sitaraman"
-        **Output Format:**
-        IS_TAG_QUERY: <yes/no>
-        TAG: <extracted tag> (Only if IS_TAG_QUERY = yes)
-        CONTENT_TYPE: <fact-check/all>
-        USE_TAG_URL: <yes/no> (Only if IS_TAG_QUERY = yes)
-        """
-
-        tag_analysis = self.llm.invoke([HumanMessage(content=tag_analysis_prompt)])
-
-        # Parse the LLM response
-        tag_results = {}
-        for line in tag_analysis.content.strip().split('\n'):
-            if ':' in line:
-                key, value = line.split(':', 1)
-                tag_results[key.strip()] = value.strip().lower()
-
-        # Process only if it's a tag query
-        if (tag_results.get('IS_TAG_QUERY') == 'yes' and 
-            tag_results.get('TAG') and 
-            tag_results.get('USE_TAG_URL') == 'yes'):
-            
-            tag = tag_results['TAG'].replace(' ', '%20')  # URL encode spaces
-            
-            return {
-                "fetch_latest_articles": False,  # Fetch from the tag URL directly
-                "use_rag": False,  # Don't use RAG since we have direct URL
-                "use_tag": True,  # Use the tag URL for fetching articles
-                "custom_date_range": False,
-                "index_to_use": "both",  # Not using indices
-                "article_type": tag_results.get('CONTENT_TYPE', 'all'),
-                "enhanced_query": enhanced_query,
-                "tag_url": f"https://www.boomlive.in/search?search={tag}"  # Direct tag URL reference
-            }
-
+        result["enhanced_query"] = enhanced_query
         
+        # Check for custom date range with regex
         date_pattern = re.compile(
             r'(\bfrom\s+\d{4}-\d{2}-\d{2}\b.*?to\s+\d{4}-\d{2}-\d{2}\b)|'
             r'(\b(last|this)\s+(week|month|year)\b)', 
             re.IGNORECASE
         )
         custom_date_match = date_pattern.search(enhanced_query)
-
-        # Check if query is related to fact-checking
-        fact_check_keywords = [
-            'misrepresents', 'insult', 'use influencers', 'staged', 'real', 'verify', 'true or false', 'edited', 'was', 'has', 'did', 'who', 'what', 'is', 'deceptive',
-            'false claim', 'incorrect', 'misleading', 'manipulated', 'spliced', 'fake', 'inaccurate', 'disinformation'
-        ]
         
-        # Otherwise, decide based on the query content
-        decision_prompt = (
-            f"Analyze the following query and answer:\n"
-            f"1. Is the query doesn't have claim and asking for the latest articles,latest news,latest fact checks,latest explainers,latest updates, or latest general information without specifying a specific topic, claim and having the word latest? Respond with 'yes' or 'no'.Note if the query is about any specific recent topic or **claim** then respond with 'no'\n"
-            f"2. Should this query use the RAG tool and  if user is asking any question, claim or incident Eg: Modi? Respond with 'yes' or if question is genral greetings or anything random Respond with 'no'.\n"
-            f"3. If RAG is required, indicate whether the latest or old data index should be used. Respond with 'latest', 'old', or 'both'.\n\n"
-            f"4. Does the query contain a custom date range or timeframe (e.g., 'from 2024-01-01 to 2024-12-31', 'this month', 'last week', etc.) or something like this Eg: factcheck from dec 2024 or explainers from 2024, if it is anything related to date, month or year? Respond with 'yes' or 'no'.\n\n"
-            f"5. Does the query inlcudes any one keyword from this list: fact-check, law, explainers, decode, mediabuddhi, web-stories, boom-research, deepfake-tracker. Provide one keyword from the list if present or related to any word in keyword, if it is not related to any return all. If query has boom-report then it is boom-research"
-            f"Query: {enhanced_query}"
-        )
+        # Combined decision prompt (no changes to prompt)
+        combined_prompt = f"""
+        You are an AI assistant for BOOM. BOOM maintains trending tags at https://www.boomlive.in/trending-tags.
+        Each tag can be accessed via the URL pattern: https://www.boomlive.in/search?search={{tagName}}.
+
+        **User Query:** "{enhanced_query}"
+
+        Analyze this query and provide the following information in the exact format specified:
+
+       1. IS_TAG_QUERY: <yes/no>
+            Answer 'yes' ONLY if the query is EXPLICITLY asking for fact-checks, explainers, or articles related to a specific tag/person/place WITHOUT mentioning a specific claim, event, or incident.
+            Examples of tag queries:
+                - "Provide fact-checks on Narendra Modi."
+                - "Fact Checks on Rahul Gandhi"
+                - "Provide Fact Checks on Nirmala Sitaraman"
+            Examples that are NOT tag queries:
+                - "Modi modi chants in us" (this is asking about a specific event)
+                - "Did Modi visit the US in 2023?" (this is asking about a specific claim)
+                - "Video of BJP rally in Delhi" (this is asking about a specific incident)
         
-        decision = self.llm.invoke([HumanMessage(content=decision_prompt)])
-        response_lines = decision.content.strip().split("\n")
-        print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@response_lines@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
-        print(response_lines, type(response_lines))
-        print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@response_lines@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
-        # Parse decisions
-        fetch_latest_articles = "yes" in response_lines[0].lower()
-        use_rag = "yes" in response_lines[1].lower()
-        index_to_use = response_lines[2].strip()
-        custom_date_range = "yes" in response_lines[3].lower()
+        2. TAG: <extracted tag> (Only if IS_TAG_QUERY = yes, otherwise leave blank)
+        
+        3. CONTENT_TYPE: <fact-check/all>
+        
+        4. IS_LATEST_GENERAL: <yes/no>
+        Answer 'yes' if the query is asking for the latest articles, latest news, latest fact checks, latest explainers, latest updates, or latest general information WITHOUT specifying a specific topic, claim, person, or entity. The query should have the word 'latest' and should NOT mention any specific subject.
+        
+        5. USE_RAG: <yes/no>
+        Answer 'yes' if user is asking any question, claim or incident  (e.g., "Modi", or even a descriptive query like "7 साल पुराना वीडियो" that implies a fact-check context). Answer 'no' if the question is general greetings or random.
+        - Answer 'no' if the question is general greetings or random.
 
-        print(fetch_latest_articles, use_rag, index_to_use, custom_date_range)
-            # Safely access the article_type
-        if len(response_lines) > 4:
-            article_type = re.sub(r'^\d+[\.\s]*', '', response_lines[4].strip()).lower()
-        print("#########################################################################")
-        print(decision_prompt)
-        print("#########################################################################")
-        print("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
-        print(article_type)
-        print("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
-
-
-        ########################################################
-      
+        6. INDEX_TO_USE: <latest/old/both>
+        Only answer if USE_RAG is 'yes'. Indicate whether the latest or old data index should be used.
+        
+        7. CUSTOM_DATE_RANGE: <yes/no>
+        Answer 'yes' if the query contains a custom date range or timeframe, or anything related to date, month or year.
+        Example: "factcheck from dec 2024" or "explainers from 2024"
+         - **If the query only contains descriptive time markers (such as "7 साल पुराना", "5 years old") without an explicit date range, then answer 'no'.**
+        
+        8. ARTICLE_TYPE: <fact-check/law/explainers/decode/mediabuddhi/web-stories/boom-research/deepfake-tracker/all>
+        Provide one keyword from the list if present in the query or related to any word in the query. If not related to any specific type, return 'all'. Note: If query has "boom-report" then use "boom-research".
+        """
+        
+        decision = self.llm.invoke([HumanMessage(content=combined_prompt)])
+        response_content = decision.content.strip()
+        print("Combined decision response:")
+        print(response_content)
+        
+        # Improved parsing logic that handles numbered lines and normalizes keys
+        decision_results = {}
+        for line in response_content.split('\n'):
+            if ':' in line:
+                # Remove numbering if present
+                if re.match(r'^\d+\.\s+', line):
+                    line = re.sub(r'^\d+\.\s+', '', line)
+                    
+                key, value = line.split(':', 1)
+                key = key.strip().lower()  # Normalize keys to lowercase
+                value = value.strip().lower()
+                decision_results[key] = value
+        
         metadata = enhanced_data["query_metadata"]
-         # Map primary tool to mediator response
+
+
+        has_date_component = custom_date_match or decision_results.get('custom_date_range') == 'yes'
+
+        # Smart decision tree with priority order
         if metadata["primary_tool"] == "CUSTOM_DATE_RETRIEVER":
-            return {
-                "fetch_latest_articles": False,
-                "use_rag": False,
-                "use_tag": False,
+            result.update({
                 "custom_date_range": True,
-                "index_to_use": None,
                 "response": "Using custom date retriever for temporal query",
-                "article_type": article_type,
-                "enhanced_query": enhanced_query 
-            }
-        ###############################################
-
-
-        if custom_date_match:
-            return {
-                "fetch_latest_articles": False,
-                "use_rag": False,
-                "use_tag": False,
+                "article_type": decision_results.get('article_type', 'all')
+            })
+        elif has_date_component:
+                # Date range has priority over tag query
+                result.update({
+                    "custom_date_range": True,
+                    "use_tag": False,  # Explicitly set to false in case there was a tag
+                    "response": "Query detected as custom date range, fetching articles for the specified range.",
+                    "article_type": decision_results.get('article_type', 'all')
+                })
+                
+                # If there is also a tag, we can extract it for potential filtering
+                if decision_results.get('is_tag_query') == 'yes' and decision_results.get('tag'):
+                    tag = decision_results['tag'].replace(' ', '%20')
+                    result["tag"] = tag
+        elif decision_results.get('is_tag_query') == 'yes' and decision_results.get('tag') and self.language_code == 'en':
+            tag = decision_results['tag'].replace(' ', '%20')
+            result.update({
+                "use_tag": True,
+                "index_to_use": "both",
+                "article_type": decision_results.get('content_type', 'all'),
+                "tag_url": f"https://www.boomlive.in/search?search={tag}"
+            })
+        elif decision_results.get('custom_date_range') == 'yes' or custom_date_match:
+            result.update({
                 "custom_date_range": True,
-                "index_to_use": None,
                 "response": "Query detected as custom date range, fetching articles for the specified range.",
-                "article_type": article_type,
-                "enhanced_query": enhanced_query 
-            }
+                "article_type": decision_results.get('article_type', 'all')
+            })
+        elif decision_results.get('is_latest_general') == 'yes':
+            result.update({
+                "fetch_latest_articles": True,
+                "response": "Fetching latest articles based on general request.",
+                "article_type": decision_results.get('article_type', 'all')
+            })
+        else:
+            # Check for fact-check keywords
+            fact_check_keywords = [
+                'misrepresents', 'insult', 'use influencers', 'staged', 'real', 'verify', 'true or false', 
+                'edited', 'was', 'has', 'did', 'who', 'what', 'is', 'deceptive', 'false claim', 'incorrect', 
+                'misleading', 'manipulated', 'spliced', 'fake', 'inaccurate', 'disinformation'
+            ]
+            
+            is_fact_check = any(keyword in enhanced_query.lower() for keyword in fact_check_keywords)
+            print("is_fact_check", is_fact_check)
+            
+            if is_fact_check:
+                result.update({
+                    "use_rag": decision_results.get('use_rag') == 'yes',
+                    "index_to_use": "both",
+                    "response": "Query detected as fact-check, using RAG tool.",
+                    "article_type": decision_results.get('article_type', 'all')
+                })
+            else:
+                result.update({
+                    "use_rag": decision_results.get('use_rag') == 'yes',
+                    "custom_date_range": decision_results.get('custom_date_range') == 'yes' or custom_date_match,
+                    "index_to_use": decision_results.get('index_to_use', 'both'),
+                    "article_type": decision_results.get('article_type', 'all')
+                })
         
-                # If the query contains any of these keywords, mark it as a fact-check query
-        is_fact_check = any(keyword in enhanced_query.lower() for keyword in fact_check_keywords)
-        print("is_fact_check", is_fact_check)
-        # Force the use of RAG for fact-check queries
-        if is_fact_check:
-            return {
-                "fetch_latest_articles": False,  # Skip fetching articles if fact-checking
-                "use_rag": use_rag,  # Always use RAG for fact-checking queries
-                "use_tag": False,
-                "custom_date_range": False,
-                "index_to_use": "both",  # Check both indexes for relevant data (latest and old)
-                "response": "Query detected as fact-check, using RAG tool.",
-                "article_type": article_type,
-                "enhanced_query": enhanced_query
-
-            }
-        return {
-            "fetch_latest_articles": fetch_latest_articles,
-            "use_rag": use_rag,
-            "use_tag": False,
-            "custom_date_range": custom_date_range,
-            "index_to_use": index_to_use,
-            "article_type": article_type,
-            "enhanced_query": enhanced_query 
-        }
-
+        return result
 
 
 
@@ -1069,12 +1247,16 @@ class Chatbot:
         """
         Enhanced retrieve_data with better context utilization
         """
+        print("retrieve_data invoked")  # Simple log to track invocations
 
+        print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
+        print(self.language_code)
+        print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
 
-        if self.language_code =='hi':
+        if self.language_code=='hi':
             index_to_use='hindi-boom-articles'
         elif self.language_code=='bn':
-            index_to_use=='bangla-boom-articles'
+            index_to_use='bangla-boom-articles'
         print(f"Retrieve data called with query: {query} and index: {index_to_use} with article_type: {article_type}")
         
         current_date = get_current_date()
@@ -1131,14 +1313,14 @@ class Chatbot:
             all_sources.extend(hindi_sources)
 
 
-        # if index_to_use=="bangla-boom-articles":
-        #     print("USING BANGLA PINECONE INDEX")
-        #     bangla_retriever=self.bangla_index.as_retriever(search_kwargs={"k": 5})
-        #     bangla_docs = bangla_retriever.get_relevant_documents(enhanced_query)
-        #     print(f"bangla article documents retrieved: {len(bangla_docs)}")  # Debugging line
-        #     all_docs.extend(bangla_docs)
-        #     bangla_sources = [doc.metadata.get("source", "Unknown") for doc in bangla_docs]
-        #     all_sources.extend(bangla_sources)
+        if index_to_use=="bangla-boom-articles":
+            print("USING BANGLA PINECONE INDEX")
+            bangla_retriever=self.bangla_index.as_retriever(search_kwargs={"k": 5})
+            bangla_docs = bangla_retriever.get_relevant_documents(enhanced_query)
+            print(f"bangla article documents retrieved: {len(bangla_docs)}")  # Debugging line
+            all_docs.extend(bangla_docs)
+            bangla_sources = [doc.metadata.get("source", "Unknown") for doc in bangla_docs]
+            all_sources.extend(bangla_sources)
 
         if all_docs:
             print("the code is going in all_docs")
@@ -1148,19 +1330,28 @@ class Chatbot:
             synthesis_prompt = f"""
             Based on the following content, provide a breif and short response as a Boom Chatbot: {query}
             The current date is {current_date}.
+            Use language corresponding language code {self.language_code} for response 
             Sources: {all_sources}
             Context:
             {combined_content}
-            Also mention if relevant sources are found or not for the query, but do not mention the query provided: {query}
-            **if exact sources are not found for the query: {query} then reply as only Not Found , dont add anything else in response **
             """
-
+            if self.language_code == "en":
+                synthesis_prompt += f"""
+                Also mention if relevant sources are found or not for the query, but do not mention the query provided: {query}
+                **if relevant context are not found for the query: "{query}" then reply as only Not Found , dont add anything else in response and if relevant sources are found provide brief summary**
+                """
             # Apply date filtering only if it's mentioned
             if not is_date_filtered:
                 synthesis_prompt = synthesis_prompt.replace("Avoids any unnecessary reference to timeframes, dates, or specific years", "Does not mention any timeframes or dates")
+            print("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%(synthesis_prompt)%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
+            print(synthesis_prompt)
+            print("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%(synthesis_prompt)%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
 
             response = self.llm.invoke([self.system_message, HumanMessage(content=synthesis_prompt)])
             result_text = response.content
+            print("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%all_sources%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
+            print(all_sources)
+            print("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
 
             # Clean up duplicates from sources
             unique_sources = list(dict.fromkeys(all_sources))
@@ -1179,11 +1370,11 @@ class Chatbot:
                         #         filtered_sources.append(source)
 
                          # Check if "fact-check" is selected and include both "fact-check" and "fast-check"
-                        if "fact-check" in article_type:
+                        if "fact-check" in article_type and self.language_code=="en":
                             if "https://www.boomlive.in/fact-check" in source or "https://www.boomlive.in/fast-check" in source:
                                 filtered_sources.append(source)
                         # Include URLs matching the selected article type
-                        elif f"https://www.boomlive.in/{article_type}" in source:
+                        elif f"https://www.boomlive.in/{article_type}" in source and self.language_code=="en":
                             filtered_sources.append(source)
                         # Fallback: If URL does not match specific categories, add it by default
                         else:

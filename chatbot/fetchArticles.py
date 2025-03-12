@@ -22,7 +22,7 @@ HINDI_BOOMLIVE_API_KEY = os.getenv("HINDI_BOOMLIVE_API_KEY")
 BANGLA_BOOMLIVE_API_KEY=os.getenv("BANGLA_BOOMLIVE_API_KEY")
 #---------------------------------------------------------------------------------------#
 FILTER_BOOMLIVE_ARTICLES = os.getenv("FILTER_BOOMLIVE_ARTICLES")
-STORE_BOOMLIVE__ARTICLES=os.getenv("STORE_BOOMLIVE__ARTICLES")
+STORE_BOOMLIVE__ARTICLES=os.getenv("STORE_BOOMLIVE_ARTICLES")
 #----------------------------------------------------------------------------------------#
 
 ###############################################################################################################################################
@@ -128,7 +128,7 @@ async def store_multilingual_articles_custom_range(from_date: str = None, to_dat
             # print(perpageurl)
             # # Filter and process URLs
             filtered_urls = await filter_urls_custom_range(json.dumps(perpageurl), lang)
-            # print("These are filtered urls",filtered_urls)
+            print("These are filtered urls",filtered_urls)
             docsperindex = await fetch_docs_custom_range(filtered_urls)
             print(f"Processed {len(filtered_urls)} articles and {len(docsperindex)} chunks to add to Pinecone.")
 
@@ -158,8 +158,9 @@ from langchain_openai import OpenAIEmbeddings
 
 
 async def filter_urls_custom_range(urls, lang):
-
-    api_url = f"{FILTER_BOOMLIVE_ARTICLES}?urls={urls}&lang{lang}"
+    print("THESE ARE URLS TO BE FILTERED", urls)
+    api_url = f"{FILTER_BOOMLIVE_ARTICLES}?urls={urls}&lang={lang}"
+    print(api_url)
     headers = {
         "accept": "*/*",
         "Authorization": "adityaboom_requesting2024#",
@@ -234,7 +235,12 @@ async def add_urls_to_database(urls, lang):
         "Authorization": "adityaboom_requesting2024#",
         "Content-Type": "application/json"
     }
-    
+    print("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
+
+    print(api_url)    
+
+    print("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
+
     try:
         # Send the POST request with the URLs in the payload
         response = requests.get(api_url, headers=headers, verify=False)

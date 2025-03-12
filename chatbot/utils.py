@@ -13,6 +13,13 @@ import json
 import time
 from random import randint
 from urllib.parse import urlparse
+def clean_response(response):
+    """
+    Removes the date range from response if it appears before '**'.
+    """
+    pattern = r"data:\s*from\s*\d{4}-\d{2}-\d{2}\s*to\s*\d{4}-\d{2}-\d{2}\s*\*\*"
+    cleaned_response = re.sub(pattern, "**", response, flags=re.DOTALL)
+    return cleaned_response
 
 def is_url(input_string):
     try:
