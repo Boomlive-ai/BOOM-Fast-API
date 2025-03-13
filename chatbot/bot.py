@@ -447,7 +447,7 @@ class Chatbot:
                 # Format response with the fetched URLs as sources
                 response_text = (
                     f"Here are the latest {article_type_text}articles:\n"
-                    # +  "\n\nSources:\n" + "\n".join(latest_urls)  # Use the fetched URLs as sources
+                    +  "\n\nSources:\n" + "\n".join(latest_urls)  # Use the fetched URLs as sources
                 )
                 # Prepare additional data for LLM processing
                 additional_kwargs = {"latest_articles": latest_urls}

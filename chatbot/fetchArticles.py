@@ -52,7 +52,7 @@ async def store_multilingual_daily_articles(lang: str = None):
     print(f"Storing articles from {from_date} to {to_date}...")
     try:
         # Use the existing function to store articles for the given range
-        daily_articles = await store_multilingual_articles_custom_range(from_date, to_date)
+        daily_articles = await store_multilingual_articles_custom_range(from_date, to_date,lang)
         return daily_articles
     except Exception as e:
         print(f"Error in store_daily_articles: {str(e)}")
