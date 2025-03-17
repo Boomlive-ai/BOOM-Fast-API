@@ -140,3 +140,73 @@ def fetch_articles_based_on_articletype(articleType):
         return [{"urls": []}]
         
     return {"urls": urls}
+
+
+
+def fetch_articles_based_on_articletype_and_language(articleType, language="en"):
+    """
+    Fetch articles based on article type and language.
+    
+    Args:
+        articleType (str): Type of articles to fetch (e.g., "fact-check")
+        language (str): Language code ("en" for English, "hi" for Hindi, "bn" for Bengali)
+    
+    Returns:
+        dict: Dictionary containing URLs of articles or error message
+    """
+    urls = []
+    
+    # Define base URL based on language
+    base_urls = {
+        "en": "https://www.boomlive.in",
+        "hi": "https://hindi.boomlive.in",
+        "bn": "https://bangla.boomlive.in"
+    }
+    
+    # Define language-specific SIDs
+    sids = {
+        "en": "1w3OEaLmf4lfyBxDl9ZrLPjVbSfKxQ4wQ6MynGpyv1ptdtQ0FcIXfjURSMRPwk1o",
+        "hi": "A2mzzjG2Xnru2M0YC1swJq6s0MUYXVwJ4EpJOub0c2Y8Xm96d26cNrEkAyrizEBD",
+        "bn": "xgjDMdW01R2vQpLH7lsKMb0SB5pDCKhFj7YgnNymTKvWLSgOvIWhxJgBh7153Mbf"
+    }
+    
+    # Select the appropriate base URL and SID
+    base_url = base_urls.get(language, base_urls["en"])
+    sid = sids.get(language, sids["en"])
+    
+    # API URL remains the same, but we'll handle language-specific content later
+    api_url = 'https://boomlive.in/dev/h-api/news'
+    headers = {
+        "accept": "*/*",
+        "s-id": sid
+    }
+    
+    # Add language parameter to API call if not English
+    if language != "en":
+        api_url = f"{api_url}?lang={language}"
+    
+    try:
+        response = requests.get(api_url, headers=headers)
+        response.raise_for_status()
+        data = response.json()
+        
+        if response.status_code == 200:
+            # Break if no articles are found
+            if not data.get("news"):
+                return {"urls": []}
+                
+            # Filter URLs containing articleType in the URL path
+            for news_item in data.get("news", []):
+                url_path = news_item.get("url")
+                if url_path and f"{base_url}/{articleType}" in url_path:
+                    urls.append(url_path)
+    except requests.exceptions.RequestException as e:
+        print(f"Failed to fetch articles: {e}")
+        return {"error": f"Failed to fetch articles: {e}"}
+    
+    # If no relevant articles are found
+    if not urls:
+        print(f"No {articleType} articles found for {language} language.")
+        return {"urls": []}
+        
+    return {"urls": urls}

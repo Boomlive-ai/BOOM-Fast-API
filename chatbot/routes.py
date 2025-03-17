@@ -136,7 +136,7 @@ from pydantic import BaseModel
 from langchain_core.messages import HumanMessage, AIMessageChunk, AIMessage
 from chatbot.bot import Chatbot
 from chatbot.utils import extract_sources_and_result, prioritize_sources, clean_response
-from chatbot.tools import fetch_questions_on_latest_articles_in_Boomlive, fetch_articles_based_on_articletype
+from chatbot.tools import fetch_questions_on_latest_articles_in_Boomlive, fetch_articles_based_on_articletype, fetch_articles_based_on_articletype_and_language
 from chatbot.vectorstore import StoreCustomRangeArticles, StoreDailyArticles, StoreMultilingualCustomRangeArticles, StoreMultilingualDailyArticles
 from fastapi.responses import StreamingResponse
 from datetime import datetime
@@ -484,12 +484,26 @@ async def generate_questions():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @chatbot_router.get("/fetch_articles")
 async def fetch_articles(
     articleType: str = Query(..., description="Type of articles to fetch")
 ):
     try:
         results = fetch_articles_based_on_articletype(articleType)
+        return results
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+
+# Update the API endpoint to accept language parameter
+@chatbot_router.get("/fetch_multilingual_articles")
+async def fetch_articles(
+    articleType: str = Query(..., description="Type of articles to fetch"),
+    language: str = Query("en", description="Language code: 'en' for English, 'hi' for Hindi, 'bn' for Bengali")
+):
+    try:
+        results = fetch_articles_based_on_articletype_and_language(articleType, language)
         return results
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
