@@ -117,10 +117,17 @@ class Chatbot:
 
     def detect_and_set_language(self, original_query):
         """Detect language and update self.language_code."""
-        try:
-            detected_lang = detect(original_query)  # Detects language
-        except:
-            detected_lang = "en"  # Default to English if detection fails
+        print("detect_and_set_language invoked")  # Simple log to track invocations
+
+        # try:
+        print("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$4")
+        detected_lang = detect(original_query)  # Detects language
+        print("DETECTED LANGUAGE IS",detected_lang)
+        print("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$4")
+
+        # except Exception as e:
+        #     print("Error during language detection:", e)
+        #     detected_lang = "en"
 
         if detected_lang == "hi":
             self.language_code = "hi"  # Hindi
@@ -128,17 +135,21 @@ class Chatbot:
             self.language_code = "bn"  # Bangla
         else:
             self.language_code = "en"  # Default to English
+
+
+
     def enhance_query(self, original_query: str) -> dict:
         """
         Enhanced query processing optimized for mediator tool selection.
         Analyzes query patterns to maximize correct tool selection.
         """
-        
+        print("enhance_query invoked")  # Simple log to track invocations
+
         self.detect_and_set_language(original_query)
 
             # Step 1: Detect if the query is in English
         detected_lang = detect(original_query)
-        
+        print("DETECTED LANGUAGE",detected_lang)
         if detected_lang != "en" and detected_lang != "hi" and detected_lang != "bn" :
             # Translate the query to English
             translator = GoogleTranslator(source="auto", target="en")
@@ -293,7 +304,7 @@ class Chatbot:
         messages = state['messages']
         last_message = messages[-1]
         original_query = last_message.content
-
+        print("ORIGINAL QUERY", original_query)    
         # Mediator makes decisions
         mediation_result = self.mediator(original_query)
 
@@ -839,6 +850,8 @@ class Chatbot:
         """
         Enhanced mediator that handles fact-check queries and invalid/random queries.
         """
+        print("mediator invoked")  # Simple log to track invocations
+
         # Initialize default return values
         result = {
             "fetch_latest_articles": False,
@@ -853,6 +866,7 @@ class Chatbot:
         }
         
         enhanced_data = self.enhance_query(query)
+        
         print(enhanced_data)
         enhanced_query = enhanced_data["enhanced_query"]
         result["enhanced_query"] = enhanced_query

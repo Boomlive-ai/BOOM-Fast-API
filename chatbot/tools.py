@@ -6,7 +6,7 @@ from langchain_core.messages import HumanMessage
 # Initialize the LLM
 llm = ChatOpenAI(temperature=0, model_name='gpt-4o')
 
-def generate_questions_batch(articles):
+def generate_questions_batch(articles, lang='en'):
     """
     Generates concise questions for a batch of articles using an LLM.
 
@@ -16,6 +16,8 @@ def generate_questions_batch(articles):
     Returns:
         list: A randomly ordered list of questions generated from all the articles.
     """
+    print("generate_questions_batch invoked", articles)
+
     # Construct a single prompt for all articles in the batch
     input_prompts = []
     for i, article in enumerate(articles):
@@ -27,14 +29,18 @@ def generate_questions_batch(articles):
         Title: {title}
         Description: {description}
         Story Excerpt: {story[:500]}... (truncated for brevity)
+        Use Language corresponding to this language code:{lang}
+        Generate two concise,interesting, specific and relevant questions (under 60 characters) based on the article content which user want to know about latest articles.
+        Ensure the questions meet the following criteria:
+        1. Focus on actionable or data-driven information from the article.
+        2. Do not include the article title "Aticle n", article labels, or headings in the questions or article numbers or question numbers.
+        3. Do not use bullet points and article numbers.
+        4. Return only the questions (no introductory text or labels).
+        5. Keep the questions under 60 characters each.
+        6. Should have a emoji related to question as prefix
+        7. Return the questions in a shuffled order.
+        8. Use Language corresponding to this language code:{lang}
 
-        Generate two simple, The questions should be mostly about the claims in the artricle using some good keywords in the title and description 
-        (under 60 characters) that users are likely to ask. Ensure the questions are direct and plain text. Do not number them, use quotes, or add any other formatting.
-        
-        Example result format (Do not use backslashes or extra quotes):
-        How did the statements impact public opinion?
-        Why was the video of the event misrepresented?
-        
         Provide only the list of questions which have proper context for user to understand question, as shown in the example.
         """)
 
@@ -57,7 +63,7 @@ def generate_questions_batch(articles):
         print(f"Error generating questions: {e}")
         return []
 
-def fetch_questions_on_latest_articles_in_Boomlive():
+def fetch_questions_on_latest_articles_in_Boomlive(language="en"):
     """
     Fetches the latest articles from the IndiaSpend API and generates up to 20
     concise questions in batches.
@@ -65,12 +71,37 @@ def fetch_questions_on_latest_articles_in_Boomlive():
     Returns:
         dict: A dictionary containing all questions from the articles in a single list.
     """
+
+    print("fetch_questions_on_latest_articles_in_Boomlive invoked")
     urls = []
+    print(f"Language: {language}")
+
+    base_urls = {
+        "en": "https://www.boomlive.in",
+        "hi": "https://hindi.boomlive.in",
+        "bn": "https://bangla.boomlive.in"
+    }
+       # Define language-specific SIDs
+    sids = {
+        "en": "1w3OEaLmf4lfyBxDl9ZrLPjVbSfKxQ4wQ6MynGpyv1ptdtQ0FcIXfjURSMRPwk1o",
+        "hi": "A2mzzjG2Xnru2M0YC1swJq6s0MUYXVwJ4EpJOub0c2Y8Xm96d26cNrEkAyrizEBD",
+        "bn": "xgjDMdW01R2vQpLH7lsKMb0SB5pDCKhFj7YgnNymTKvWLSgOvIWhxJgBh7153Mbf"
+    }
+
+
+      # Select the appropriate base URL and SID
+    base_url = base_urls.get(language, base_urls["en"])
+    sid = sids.get(language, sids["en"])
+    
     api_url = 'https://boomlive.in/dev/h-api/news'
     headers = {
         "accept": "*/*",
-        "s-id": "1w3OEaLmf4lfyBxDl9ZrLPjVbSfKxQ4wQ6MynGpyv1ptdtQ0FcIXfjURSMRPwk1o"
+        "s-id": sid
     }
+
+     # Add language parameter to API call if not English
+    if language != "en":
+        api_url = f"{base_url}/dev/h-api/news"
     print(f"Fetching articles from API: {api_url}")
 
     try:
@@ -84,7 +115,7 @@ def fetch_questions_on_latest_articles_in_Boomlive():
             # Filter URLs containing 'fact-check' in the URL path
             for news_item in data.get("news", []):
                 url_path = news_item.get("url")
-                if url_path and "https://www.boomlive.in/fact-check/" in url_path:
+                if url_path and f"{base_url}/fact-check/" in url_path:
                     urls.append(url_path)
     except requests.exceptions.RequestException as e:
         print(f"Failed to fetch articles: {e}")
@@ -103,7 +134,7 @@ def fetch_questions_on_latest_articles_in_Boomlive():
     filtered_articles = filtered_articles[:10]
 
     # Generate questions in a single batch
-    questions = generate_questions_batch(filtered_articles)
+    questions = generate_questions_batch(filtered_articles, language)
 
     # Ensure only 20 questions are returned
     return {"questions": questions[:20]}

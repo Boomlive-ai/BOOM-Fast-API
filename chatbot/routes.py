@@ -477,13 +477,13 @@ async def store_daily_articles():
         raise HTTPException(status_code=500, detail=str(e))
 
 @chatbot_router.get("/generate_questions")
-async def generate_questions():
+async def generate_questions(language: str = Query("en", description="Language code for filtering articles")):
     try:
-        results = fetch_questions_on_latest_articles_in_Boomlive()
+        results = fetch_questions_on_latest_articles_in_Boomlive(language)
         return results
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
+    
 
 @chatbot_router.get("/fetch_articles")
 async def fetch_articles(
