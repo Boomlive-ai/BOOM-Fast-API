@@ -1349,11 +1349,22 @@ class Chatbot:
             Context:
             {combined_content}
             """
-            if self.language_code == "en":
+            if self.language_code=="en":
                 synthesis_prompt += f"""
                 Also mention if relevant sources are found or not for the query, but do not mention the query provided: {query}
-                **if relevant context are not found for the query: "{query}" then reply as only Not Found , dont add anything else in response and if relevant sources are found provide brief summary**
+                **if relevant context are not found for the query: "{query}" from the **Sources** provided then reply as only **Not Found** , dont add anything else in response and if relevant sources are found provide brief summary**
                 """
+            if self.language_code=="hi":
+                synthesis_prompt += f"""
+                कृपया यह भी उल्लेख करें कि प्रश्न के लिए प्रासंगिक स्रोत पाए गए हैं या नहीं, लेकिन दिए गए प्रश्न का उल्लेख न करें: {query}
+                **यदि प्रासंगिक संदर्भ प्रश्न के लिए नहीं पाए जाते: "{query}" **दिए गए **स्रोतों** से, तो केवल **Not Found** के रूप में उत्तर दें, और कोई भी अन्य जानकारी न जोड़ें, और यदि प्रासंगिक स्रोत पाए जाते हैं, तो संक्षिप्त सारांश प्रदान करें**
+                """
+            if self.language_code=="bn":
+                synthesis_prompt += f"""
+                অনুগ্রহ করে উল্লেখ করুন যে প্রশ্নের জন্য প্রাসঙ্গিক উৎস পাওয়া গেছে কি না, তবে প্রদত্ত প্রশ্নের উল্লেখ করবেন না: {query}
+                **যদি প্রশ্নের জন্য প্রাসঙ্গিক কনটেক্সট না পাওয়া যায়: "{query}" **প্রদত্ত **উৎসগুলি** থেকে, তাহলে শুধুমাত্র **Not Found** উত্তর দিন, আর কোনো কিছু যোগ করবেন না, এবং যদি প্রাসঙ্গিক উৎস পাওয়া যায়, তবে একটি সংক্ষিপ্ত সারাংশ প্রদান করুন**
+                """
+
             # Apply date filtering only if it's mentioned
             if not is_date_filtered:
                 synthesis_prompt = synthesis_prompt.replace("Avoids any unnecessary reference to timeframes, dates, or specific years", "Does not mention any timeframes or dates")
@@ -1373,6 +1384,7 @@ class Chatbot:
             if "all" in article_type:
                 filtered_sources = unique_sources
             else:
+                print("UNIQUE SOURCES", unique_sources)
                 for source in unique_sources:
                     if source:
                         # Check if "fact-check" is selected and include both "fact-check" and "fast-check"
@@ -1385,13 +1397,31 @@ class Chatbot:
 
                          # Check if "fact-check" is selected and include both "fact-check" and "fast-check"
                         if "fact-check" in article_type and self.language_code=="en":
+                            print("inside if 'fact-check' in article_type and self.language_code=='en':")
                             if "https://www.boomlive.in/fact-check" in source or "https://www.boomlive.in/fast-check" in source:
+                                print("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
+                                print(source)
+                                print("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
+                                filtered_sources.append(source)
+                            elif "https://www.boomlive.in/" in source:
+                                print("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
+                                print(source)
+                                print("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
+                                print("inside https://www.boomlive.in/ in source ")
                                 filtered_sources.append(source)
                         # Include URLs matching the selected article type
                         elif f"https://www.boomlive.in/{article_type}" in source and self.language_code=="en":
+                            print("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
+                            print(source)
+                            print("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
+                            print("inside https://www.boomlive.in/{article_type} in source and self.language_code==en")
                             filtered_sources.append(source)
                         # Fallback: If URL does not match specific categories, add it by default
                         else:
+                            print("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
+                            print(source)
+                            print("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
+                            print("inside else")
                             filtered_sources.append(source)  # Ensures all BoomLive URLs are included
 
             print({"sources": all_sources})
