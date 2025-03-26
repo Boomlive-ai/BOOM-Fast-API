@@ -1351,8 +1351,8 @@ class Chatbot:
             """
             if self.language_code=="en":
                 synthesis_prompt += f"""
-                Also mention if relevant sources are found or not for the query, but do not mention the query provided: {query}
-                **if relevant context are not found for the query: "{query}" from the **Sources** provided then reply as only **Not Found** , dont add anything else in response and if relevant sources are found provide brief summary**
+                Also mention if any relevant exact source is found or not for the query: "{query}", but do not mention the query provided: {query}, in the response.
+                **if relevant context or source is not found for the query: "{query}" from the **Sources** provided then reply as only **Not Found** , dont add anything else in response and if relevant sources are found provide brief summary**
                 """
             if self.language_code=="hi":
                 synthesis_prompt += f"""
