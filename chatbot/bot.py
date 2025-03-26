@@ -1354,16 +1354,18 @@ class Chatbot:
                 Also mention if any relevant exact source is found or not for the query: "{query}", but do not mention the query provided: {query}, in the response.
                 **if relevant context or source is not found for the query: "{query}" from the **Sources** provided then reply as only **Not Found** , dont add anything else in response and if relevant sources are found provide brief summary**
                 """
-            if self.language_code=="hi":
+            if self.language_code == "hi":
                 synthesis_prompt += f"""
-                कृपया यह भी उल्लेख करें कि प्रश्न के लिए प्रासंगिक स्रोत पाए गए हैं या नहीं, लेकिन दिए गए प्रश्न का उल्लेख न करें: {query}
-                **यदि प्रासंगिक संदर्भ प्रश्न के लिए नहीं पाए जाते: "{query}" **दिए गए **स्रोतों** से, तो केवल **Not Found** के रूप में उत्तर दें, और कोई भी अन्य जानकारी न जोड़ें, और यदि प्रासंगिक स्रोत पाए जाते हैं, तो संक्षिप्त सारांश प्रदान करें**
+                कृपया यह भी स्पष्ट करें कि प्रश्न के लिए कोई प्रासंगिक स्रोत मिला या नहीं, लेकिन प्रश्न का उल्लेख न करें: {query}।
+                **यदि दिए गए **स्रोतों** में से प्रश्न "{query}" के लिए कोई प्रासंगिक संदर्भ नहीं मिलता है, तो केवल **Not Found** लिखें और उत्तर में कुछ भी अतिरिक्त न जोड़ें। यदि प्रासंगिक स्रोत मिलते हैं, तो उनका संक्षिप्त सारांश प्रदान करें।**
                 """
-            if self.language_code=="bn":
+
+            if self.language_code == "bn":
                 synthesis_prompt += f"""
-                অনুগ্রহ করে উল্লেখ করুন যে প্রশ্নের জন্য প্রাসঙ্গিক উৎস পাওয়া গেছে কি না, তবে প্রদত্ত প্রশ্নের উল্লেখ করবেন না: {query}
-                **যদি প্রশ্নের জন্য প্রাসঙ্গিক কনটেক্সট না পাওয়া যায়: "{query}" **প্রদত্ত **উৎসগুলি** থেকে, তাহলে শুধুমাত্র **Not Found** উত্তর দিন, আর কোনো কিছু যোগ করবেন না, এবং যদি প্রাসঙ্গিক উৎস পাওয়া যায়, তবে একটি সংক্ষিপ্ত সারাংশ প্রদান করুন**
+                অনুগ্রহ করে উল্লেখ করুন যে প্রশ্নের জন্য কোনো প্রাসঙ্গিক উৎস পাওয়া গেছে কি না, তবে প্রশ্নটি উল্লেখ করবেন না: {query}।
+                **যদি প্রদত্ত **উৎসগুলি** থেকে প্রশ্ন "{query}"-এর জন্য কোনো প্রাসঙ্গিক কনটেক্সট না পাওয়া যায়, তাহলে শুধুমাত্র **Not Found** লিখুন এবং কোনো অতিরিক্ত তথ্য যোগ করবেন না। যদি প্রাসঙ্গিক উৎস পাওয়া যায়, তবে একটি সংক্ষিপ্ত সারাংশ প্রদান করুন।**
                 """
+
 
             # Apply date filtering only if it's mentioned
             if not is_date_filtered:
