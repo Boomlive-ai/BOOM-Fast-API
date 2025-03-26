@@ -209,6 +209,11 @@ async def store_docs_in_pinecone(docs, urls, lang):
         "hi": "hindi-boom-articles",
         "bn": "bangla-boom-articles"
     }.get(lang, "boom-latest-articles")
+
+
+    print("store_docs_in_pinecone invoked")
+    print("lang", lang)
+    print("INDEX NAME", index_name)
     embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
     print(f"Storing {len(docs)} document chunks to Pinecone index '{index_name}'...")
     pine_vs = Pinecone.from_documents(documents = docs, embedding = embeddings, index_name=index_name)
@@ -228,7 +233,49 @@ async def add_urls_to_database(urls, lang):
     Returns:
         str: A message indicating the result of the request.
     """
+    print("add_urls_to_database invoked")
+    api_url = f"{STORE_BOOMLIVE__ARTICLES}?urls={urls}&lang={lang}"
+    headers = {
+        "accept": "*/*",
+        "Authorization": "adityaboom_requesting2024#",
+        "Content-Type": "application/json"
+    }
+    print("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
 
+    print(api_url)    
+
+    print("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
+
+    try:
+        # Send the POST request with the URLs in the payload
+        response = requests.get(api_url, headers=headers, verify=False)
+
+        # Check if the request was successful
+        if response.status_code == 200:
+            response_data = response.json()
+            # You can log or process the response data as required
+            # noofurls = len(urls)
+            # print(urls, noofurls)
+            print(f"Successfully added {len(urls)}URLs to the database." )
+            return f"Successfully added URLs to the database."
+        else:
+            if(len(urls) == 0):
+                return f"There are no urls to add"
+            return f"There are no urls to add"
+    except requests.RequestException as e:
+        return f"An error occurred while adding URLs: {e}"
+    
+async def add_multilingual_urls_to_database(urls, lang):
+    """
+    Adds new URLs to the database by sending them to an external API endpoint.
+
+    Args:
+        urls (list): List of new URLs to be added to the database.
+
+    Returns:
+        str: A message indicating the result of the request.
+    """
+    print("add_urls_to_database invoked")
     api_url = f"{STORE_BOOMLIVE__ARTICLES}?urls={urls}&lang={lang}"
     headers = {
         "accept": "*/*",

@@ -507,3 +507,67 @@ async def fetch_articles(
         return results
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    
+
+
+from chatbot.utils import query_pinecone
+from pydantic import BaseModel
+from typing import Optional
+
+class QueryItem(BaseModel):
+    query: str
+    index_name: str  # Add index_name to allow dynamic querying
+    top_k: Optional[int] = 5
+
+
+@chatbot_router.post("/query_pinecone")
+async def query_index(query_item: QueryItem):
+    """
+    Query the Pinecone index with the given query text and specified index name.
+    """
+    try:
+        results = await query_pinecone(query_item.query, query_item.index_name, top_k=query_item.top_k)
+        
+        # Format results for response
+        formatted_results = [
+            {
+                "source": doc.metadata.get("source", "Unknown"),
+                "content": doc.page_content,
+                "metadata": doc.metadata
+            }
+            for doc in results
+        ]
+
+        return {"success": True, "results": formatted_results}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error querying index: {str(e)}")
+    
+      
+class ProcessResponse(BaseModel):
+    success: bool
+    message: str
+from pydantic import BaseModel
+
+class UrlItem(BaseModel):
+    url: str
+    lang: str
+    index_name: str
+
+from chatbot.utils import process_and_upload_single_url
+from fastapi import  BackgroundTasks
+
+# Route for processing a single URL
+@chatbot_router.post("/process-url")
+async def process_url(url_item: UrlItem, background_tasks: BackgroundTasks):
+    """
+    Process and upload a single URL to the Pinecone index.
+    All parameters (URL, language, and index name) are passed in the request body.
+    """
+    try:
+        # Add the task to background tasks
+        background_tasks.add_task(
+            process_and_upload_single_url, url_item.url, url_item.lang, url_item.index_name
+        )
+        return {"success": True, "message": f"URL processing started for: {url_item.url}"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error processing URL: {str(e)}")
