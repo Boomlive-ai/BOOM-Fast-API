@@ -13,6 +13,8 @@ import json
 import time
 from random import randint
 from urllib.parse import urlparse
+
+
 def clean_response(response):
     """
     Removes the date range from response if it appears before '**'.
@@ -212,6 +214,8 @@ def extract_description_as_keywords(url):
     except Exception as e:
         print(f"Error extracting description as keywords: {e}")
         return []
+
+
 
 # Example usage
 # keywords = extract_description_as_keywords("https://example.com/article")

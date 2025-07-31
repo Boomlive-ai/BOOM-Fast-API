@@ -1,16 +1,19 @@
-from fastapi import FastAPI, APIRouter, File, UploadFile, Form, HTTPException, Depends
+from fastapi import FastAPI, APIRouter, File, UploadFile, Form, HTTPException, Query
 from fastapi.responses import JSONResponse
 from media_processing.video_processing import process_video_file
 from media_processing.audio_processing import process_audio_file
 from media_processing.image_processing import extract_text_from_image
 from media_processing.tools.automate_input_processing import detect_and_process_file, detect_and_process_json
 from moviepy.video.io.VideoFileClip import VideoFileClip
+from media_processing.twitter_processor import TwitterMediaProcessor
 from bs4 import BeautifulSoup
 import os
 import shutil
 import requests
 
 app = FastAPI()
+# Initialize the Twitter processor
+twitter_processor = TwitterMediaProcessor()
 media_processing_router = APIRouter()
 ALLOWED_EXTENSIONS = {'mp4', 'avi', 'mov', 'mkv', 'flv', 'mp3', 'wav', 'jpg', 'jpeg', 'png', 'webp'}
 UPLOAD_DIR = "uploads"
@@ -98,7 +101,7 @@ async def process_input(file: UploadFile = None, json_data: dict = None):
             shutil.copyfileobj(file.file, buffer)
         
         try:
-            result = detect_and_process_file(file, file_path)
+            result = await detect_and_process_file(file, file_path)
             os.remove(file_path)
             return result
         except Exception as e:
@@ -109,5 +112,103 @@ async def process_input(file: UploadFile = None, json_data: dict = None):
         return detect_and_process_json(json_data)
     else:
         raise HTTPException(status_code=415, detail="Unsupported Content-Type")
+
+
+
+# New GET endpoint for Twitter media summary
+@media_processing_router.get("/twitter/summary")
+async def get_twitter_media_summary(url: str = Query(..., description="Twitter/X URL to process")):
+    """
+    Extract and summarize media content from a Twitter/X URL
+    
+    Parameters:
+    - url: Twitter/X post URL (e.g., https://twitter.com/username/status/1234567890)
+    
+    Returns:
+    - JSON response with media summaries, transcripts, and extracted text
+    """
+    
+    # Validate URL format
+    if not url:
+        raise HTTPException(status_code=400, detail="URL parameter is required")
+    
+    # # Basic Twitter URL validation
+    # if not any(domain in url.lower() for domain in ['twitter.com', 'x.com']):
+    #     raise HTTPException(status_code=400, detail="Please provide a valid Twitter/X URL")
+    
+    try:
+        # Process the Twitter URL
+        result = twitter_processor.process_twitter_url(url)
+        
+        # Check if there was an error during processing
+        if 'error' in result:
+            raise HTTPException(status_code=500, detail=result['error'])
+        
+        # Return the processed results
+        return JSONResponse(content={
+            "status": "success",
+            "data": result,
+            "message": f"Successfully processed {result.get('media_count', 0)} media items from Twitter post"
+        })
+        
+    except HTTPException:
+        # Re-raise HTTPExceptions
+        raise
+    except Exception as e:
+        # Handle any unexpected errors
+        raise HTTPException(status_code=500, detail=f"Failed to process Twitter URL: {str(e)}")
+
+# Alternative endpoint with different URL structure
+@media_processing_router.get("/twitter/analyze")
+async def analyze_twitter_media(
+    twitter_url: str = Query(..., description="Twitter/X URL to analyze"),
+    include_raw_data: bool = Query(False, description="Include raw processing data in response")
+):
+    """
+    Analyze and summarize media content from Twitter/X posts
+    
+    Parameters:
+    - twitter_url: Full Twitter/X post URL
+    - include_raw_data: Whether to include raw processing data (optional, default: False)
+    """
+    
+    if not twitter_url:
+        raise HTTPException(status_code=400, detail="twitter_url parameter is required")
+    
+    try:
+        result = twitter_processor.process_twitter_url(twitter_url)
+        
+        if 'error' in result:
+            raise HTTPException(status_code=500, detail=result['error'])
+        
+        # Create a formatted response
+        response_data = {
+            "url": result['twitter_url'],
+            "total_media": result['media_count'],
+            "summary": [],
+            "details": []
+        }
+        
+        # Process each media item for summary
+        for media in result.get('media_results', []):
+            if 'error' not in media:
+                summary_item = {
+                    "type": media.get('type'),
+                    "summary": media.get('summary', 'No summary available')
+                }
+                response_data['summary'].append(summary_item)
+                
+                if include_raw_data:
+                    response_data['details'].append(media)
+        
+        return JSONResponse(content={
+            "status": "success",
+            "data": response_data
+        })
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
 
 app.include_router(media_processing_router, prefix="/media")

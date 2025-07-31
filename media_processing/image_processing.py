@@ -32,9 +32,6 @@ from media_processing.utils import image_ocr
 #     except Exception as e:
 #         # Handle errors (e.g., invalid image file)
 #         return {"error": f"Failed to process image: {str(e)}"}
-
-
-
 from PIL import Image
 import pytesseract
 import os
@@ -67,21 +64,19 @@ def extract_text_from_image(file_path: str) -> dict:
             img = img.convert('L')
             
             # Apply some optional preprocessing for better results
-            # Increase contrast
-            img = img.point(lambda x: 0 if x < 128 else 255, '1')
+            img = img.point(lambda x: 0 if x < 128 else 255, '1')  # Increase contrast
             
             # Extract text using pytesseract
             extracted_text = pytesseract.image_to_string(img)
             
             # Clean up the converted PNG if it was created
-            if file_path.endswith('.png') and os.path.exists(file_path):
-                os.remove(file_path)
+            if file_path.endswith('.png'):
+                # Check if the file exists before deleting it
+                if os.path.exists(file_path):
+                    os.remove(file_path)
+                else:
+                    print(f"File {file_path} does not exist, skipping deletion.")
             
-            # return {
-            #     "success": True,
-            #     "text": extracted_text.strip(),
-            #     "format": "WebP (converted)" if file_path.endswith('.png') else "Standard"
-            # }
             return extracted_text.strip()
             
     except Exception as e:

@@ -4,7 +4,7 @@ from langchain_community.chat_models import ChatOpenAI
 from langchain_core.messages import HumanMessage
 
 # Initialize the LLM
-llm = ChatOpenAI(temperature=0, model_name='gpt-4o')
+llm = ChatOpenAI(temperature=0, model_name='gpt-4.1-mini')
 
 def generate_questions_batch(articles, lang='en'):
     """

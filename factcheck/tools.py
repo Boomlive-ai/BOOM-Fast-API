@@ -11,8 +11,12 @@ from dotenv import load_dotenv
 from langdetect import detect, LangDetectException
 import iso639
 import pycountry
+from dotenv import load_dotenv
 
-llm = ChatOpenAI(temperature=0, model_name='gpt-4o')
+
+load_dotenv()  # Load from .env file
+
+llm = ChatOpenAI(temperature=0, model_name='gpt-4.1-mini')
 load_dotenv()
 
 def get_language_code(text):

@@ -5,9 +5,18 @@ import cv2
 import time
 import base64
 import os
-MODEL="gpt-4o"
-os.environ.get('OPENAI_API_KEY')
-client = OpenAI(api_key=os.environ.get('OPENAI_API_KEY'))
+from dotenv import load_dotenv
+import os
+from langchain_openai import ChatOpenAI
+
+load_dotenv()  # Load from .env file
+
+client = ChatOpenAI(
+    temperature=0, 
+    model='gpt-4.1-mini',  # Correct model name
+    openai_api_key=os.environ.get('OPENAI_API_KEY')
+)
+MODEL="gpt-4.1-mini"
 
 def process_video_file(video_path, seconds_per_frame=2):
     print(video_path)

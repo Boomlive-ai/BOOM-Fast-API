@@ -35,7 +35,7 @@ class RAGQuery(BaseModel):
 class Chatbot:
 
     def __init__(self):
-        self.llm =ChatOpenAI(model_name="gpt-4o", temperature=0)
+        self.llm =ChatOpenAI(model_name="gpt-4", temperature=0)
         self.memory = MemorySaver()
 
         # Initialize Pinecone indices
@@ -301,6 +301,11 @@ class Chatbot:
 
     def call_model(self, state: MessagesState):
         print("call_model invoked")  # Simple log to track invocations
+
+        print("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
+        print("complete state of workflow",state)
+        print("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
+
         messages = state['messages']
         last_message = messages[-1]
         original_query = last_message.content
