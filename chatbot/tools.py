@@ -241,3 +241,71 @@ def fetch_articles_based_on_articletype_and_language(articleType, language="en")
         return {"urls": []}
         
     return {"urls": urls}
+
+
+
+from datetime import datetime, timedelta
+import requests
+
+def fetch_recent_articles(article_type: str, language: str = "en", days: int = 45) -> dict:
+    """
+    Fetch articles from the past `days` based on article type and language.
+
+    Args:
+        article_type (str): Type of articles to fetch (e.g., "fact-check")
+        language (str): Language code ("en", "hi", "bn")
+        days (int): Number of past days to fetch articles for
+
+    Returns:
+        dict: Dictionary containing list of article URLs or error message
+    """
+    # Setup
+    urls = []
+    start_index = 0
+    count = 20
+    today = datetime.today().date()
+    from_date = (today - timedelta(days=days)).strftime('%Y-%m-%d')
+    to_date = today.strftime('%Y-%m-%d')
+
+    # Language-specific domains and SIDs
+    base_urls = {
+        "en": "https://www.boomlive.in",
+        "hi": "https://hindi.boomlive.in",
+        "bn": "https://bangla.boomlive.in"
+    }
+    sids = {
+        "en": "1w3OEaLmf4lfyBxDl9ZrLPjVbSfKxQ4wQ6MynGpyv1ptdtQ0FcIXfjURSMRPwk1o",
+        "hi": "A2mzzjG2Xnru2M0YC1swJq6s0MUYXVwJ4EpJOub0c2Y8Xm96d26cNrEkAyrizEBD",
+        "bn": "xgjDMdW01R2vQpLH7lsKMb0SB5pDCKhFj7YgnNymTKvWLSgOvIWhxJgBh7153Mbf"
+    }
+
+    base_url = base_urls.get(language, base_urls["en"])
+    sid = sids.get(language, sids["en"])
+    api_url = f"{base_url}/dev/h-api/news"
+
+    headers = {
+        "accept": "*/*",
+        "s-id": sid
+    }
+
+    # Fetch in batches
+    while True:
+        paged_url = f"{api_url}?startIndex={start_index}&count={count}&fromDate={from_date}&toDate={to_date}"
+        try:
+            response = requests.get(paged_url, headers=headers)
+            response.raise_for_status()
+            data = response.json()
+
+            if not data.get("news"):
+                break
+
+            for news_item in data.get("news", []):
+                url_path = news_item.get("url")
+                if url_path and f"{base_url}/{article_type}" in url_path:
+                    urls.append(url_path)
+
+            start_index += count
+        except requests.exceptions.RequestException as e:
+            return {"error": f"Failed to fetch articles: {e}"}
+
+    return {"urls": urls}
